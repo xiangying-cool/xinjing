@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo:*)",
+      "Bash(mkdir -p /e/止计算机设计大赛/计算机设计大赛/xinjing-backend/ml_models)",
+      "Bash(cp /e/止计算机设计大赛/计算机设计大赛/depression_prediction/Predicting-Depression-from-Mental-Health-Survey-Data-with-Deep-Learning-main/keras_model.h5 /e/止计算机设计大赛/计算机设计大赛/xinjing-backend/ml_models/)",
+      "Bash(cp /e/止计算机设计大赛/计算机设计大赛/depression_prediction/Predicting-Depression-from-Mental-Health-Survey-Data-with-Deep-Learning-main/scaler.pkl /e/止计算机设计大赛/计算机设计大赛/xinjing-backend/ml_models/)",
+      "Read(//Users/q49wl2/**)",
+      "Read(//Users/**)",
+      "Bash(\"e:/止计算机设计大赛/计算机设计大赛/xinjing-backend/.venv/Scripts/python.exe\" --version)",
+      "Bash(where.exe python:*)",
+      "Bash(where.exe python3:*)",
+      "Bash(ls /c/Python*)",
+      "Read(//c/Users/**)",
+      "Read(//c/ProgramData/miniconda3/**)",
+      "Read(//c/ProgramData/anaconda3/**)",
+      "Read(//e/止计算机设计大赛/计算机设计大赛/$LOCALAPPDATA/Programs/Python/*/**)"
+    ]
+  }
+}

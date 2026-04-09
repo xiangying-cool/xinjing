@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start cmd:*)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 51008 /F)",
+      "Bash(tasklist)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(cmd /c \"taskkill /F /IM node.exe\")",
+      "Bash(cmd /c \"taskkill /F /PID 51008 2>&1\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 51008 -Force; Write-Host ''killed''\")",
+      "Bash(powershell.exe -Command \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force; Write-Host ''stopped''\")",
+      "Bash(find e:/止计算机设计大赛/计算机设计大赛 -name *.env* -o -name *.config*)",
+      "Bash(powershell.exe -Command \"Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object {$_MainWindowTitle -like ''*8000*'' -or $_CommandLine -like ''*uvicorn*app.main*''} | Stop-Process -Force; Write-Host ''done''\")",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r BASE.*= /e/止计算机设计大赛/计算机设计大赛/xinjing-frontend/src/)",
+      "Bash(git clone:*)"
+    ]
+  }
+}

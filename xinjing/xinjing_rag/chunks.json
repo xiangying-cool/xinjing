@@ -1,0 +1,67 @@
+[
+  {
+    "chunk_id": "defbe65defa3169d",
+    "doc_id": "216d731070e71423",
+    "title": "出现自伤或自杀念头时的紧急应对",
+    "content": "当用户表达“想死”“不想活了”“准备伤害自己”“已经写遗书”之类内容时，应优先进入危机应对流程，而不是继续普通聊天。\n建议的支持顺序：\n1. 先确认安全：鼓励用户立刻去有人陪伴、相对安全的地方，远离刀片、药物、绳索等可能用于伤害自己的物品。\n2. 立即联系现实支持：鼓励用户马上联系一位可信任的人，让对方陪在身边或通过电话持续陪伴。\n3. 使用紧急求助渠道：在中国大陆，可优先拨打 12356 心理援助热线；如果已经有明确计划、正在实施，或无法保证自己安全，应立即拨打 120/110 或前往最近急诊。\n4. 回复风格要简短、坚定、温和，不讨论方法细节，不争论，不说教。\n数字人此时应输出“立即求助”和“联系现实中的人”的建议，并向上游系统返回高风险标记，方便触发人工接管或页面告警。",
+    "category": "crisis",
+    "source_name": "国家卫健委、WHO、NIMH",
+    "source_url": "https://www.gov.cn/zhengce/zhengceku/202412/content_6994470.htm",
+    "source_path": "d:\\digitalpeople\\depression_rag_module\\data\\knowledge\\01_crisis_response.md",
+    "section": null,
+    "priority": 10,
+    "metadata": {}
+  },
+  {
+    "chunk_id": "49ebf9800a7f5caf",
+    "doc_id": "6ca012ca7628a199",
+    "title": "什么时候建议尽快寻求专业帮助",
+    "content": "如果低落情绪、兴趣下降、睡眠问题、疲乏、注意力困难等症状已经持续两周以上，或者已经明显影响学习、工作、人际和日常生活，通常建议尽快寻求专业评估。\n以下情况尤其需要更快转介到专业人员：\n- 出现自伤或自杀想法；\n- 症状快速加重；\n- 基本生活功能明显下降，比如几乎无法起床、吃饭、上课或上班；\n- 合并明显焦虑、惊恐、酒精或药物问题；\n- 既往有抑郁复发史或双相相关表现。\n数字人可以提供的支持主要是：共情、提醒求助、解释常见治疗方式的大方向、鼓励用户预约精神科/心理科/心理咨询资源；但不应替代正式诊断或擅自给药物建议。",
+    "category": "professional_help",
+    "source_name": "WHO、NIMH、NICE",
+    "source_url": "https://www.who.int/zh/news-room/fact-sheets/detail/depression",
+    "source_path": "d:\\digitalpeople\\depression_rag_module\\data\\knowledge\\02_professional_help.md",
+    "section": null,
+    "priority": 8,
+    "metadata": {}
+  },
+  {
+    "chunk_id": "c1048961115ca046",
+    "doc_id": "9ea80425af62847a",
+    "title": "情绪低落时可先尝试的睡眠与作息支持",
+    "content": "对于轻到中度的情绪低落，稳定作息和降低生活节律混乱，往往是最容易开始的支持措施。\n可执行建议示例：\n- 尽量固定起床时间，先不要把目标设得太大；\n- 晚上减少长时间刷手机、熬夜和白天补觉；\n- 白天安排短时步行、拉伸或晒太阳，哪怕 10 到 20 分钟也可以；\n- 把任务拆成很小的一步，例如“洗脸”“出门买水”“回复一条消息”；\n- 若连续多日完全无法入睡、日夜颠倒严重，或作息调整无效，应建议尽快求助专业人员。\n数字人应避免把这些建议说成“只要做到就会好”，更合适的表达是：这些方法可能有帮助，但如果症状持续或变重，仍建议寻求专业支持。",
+    "category": "self_help",
+    "source_name": "WHO、NICE",
+    "source_url": "https://www.nice.org.uk/guidance/ng222",
+    "source_path": "d:\\digitalpeople\\depression_rag_module\\data\\knowledge\\03_sleep_and_routine.md",
+    "section": null,
+    "priority": 6,
+    "metadata": {}
+  },
+  {
+    "chunk_id": "a4b625a314c56012",
+    "doc_id": "a12e0d31d9e84419",
+    "title": "家人和朋友如何更有效地陪伴抑郁情绪明显的人",
+    "content": "家属或朋友的目标通常不是“立刻把对方劝好”，而是帮助对方降低孤立感，并提高现实中的支持连接。\n更有效的做法：\n- 先听，再给建议；\n- 用具体、低压力的问法，例如“今天我能陪你做哪一件小事？”；\n- 帮助预约就医、整理信息、陪同前往；\n- 观察风险信号，如提到告别、遗书、自伤工具、突然把重要物品送人等；\n- 避免“你想开点”“别人更惨”“你就是不够努力”这类表达。\n如果对方已经出现明确自伤自杀风险，陪伴者不应只靠线上安慰，应尽快联系热线、急诊或当地紧急支持系统。",
+    "category": "family_support",
+    "source_name": "NIMH、WHO",
+    "source_url": "https://www.nimh.nih.gov/health/topics/depression",
+    "source_path": "d:\\digitalpeople\\depression_rag_module\\data\\knowledge\\04_family_support.md",
+    "section": null,
+    "priority": 6,
+    "metadata": {}
+  },
+  {
+    "chunk_id": "15b89468fb9df70f",
+    "doc_id": "23906f5701f9b30a",
+    "title": "数字人心理支持的边界",
+    "content": "数字人可以做的事情：\n- 提供共情式回应；\n- 基于知识库解释抑郁、求助方式、常见治疗方向和日常支持建议；\n- 在检测到高风险信号时，提醒用户联系现实支持与紧急资源。\n数字人不应做的事情：\n- 进行确定性诊断；\n- 代替医生制定药物方案、调整剂量或指导停药；\n- 保证疗效；\n- 在高风险情况下继续普通闲聊而不转入危机流程。\n如果知识库证据不足，系统应明确说明“现有资料不足”，而不是编造答案。",
+    "category": "policy",
+    "source_name": "项目内部策略",
+    "source_url": null,
+    "source_path": "d:\\digitalpeople\\depression_rag_module\\data\\knowledge\\05_chatbot_limits.md",
+    "section": null,
+    "priority": 7,
+    "metadata": {}
+  }
+]
