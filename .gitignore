@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Model files (large files)
+*.pth
+*.pkl
+*.safetensors
+*.bin
+*.ckpt
+*.onnx
+latents.pt
+
+# Data files
+*.mp4
+*.wav
+*.mp3
+*.avi
+*.mov
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large model directories
+models/
+storage/
+storage_ascii/
