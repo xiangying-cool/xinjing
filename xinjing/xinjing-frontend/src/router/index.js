@@ -13,6 +13,7 @@ const routes = [
       { path: 'companion', name: 'Companion', component: () => import('../pages/CompanionPage.vue'), meta: { requiresAuth: true } },
       { path: 'mood-calendar', name: 'MoodCalendar', component: () => import('../pages/MoodCalendarPage.vue'), meta: { requiresAuth: true } },
       { path: 'analytics', name: 'Analytics', component: () => import('../pages/AnalyticsPage.vue'), meta: { requiresAuth: true } },
+      { path: 'emotion', name: 'Emotion', component: () => import('../pages/EmotionDetectionPage.vue'), meta: { requiresAuth: true } },
       { path: 'about', name: 'About', component: () => import('../pages/AboutPage.vue'), meta: { requiresAuth: true } },
       { path: 'assessment/:type', name: 'Assessment', component: () => import('../pages/AssessmentPage.vue'), meta: { requiresAuth: true } },
       { path: 'report/:id', name: 'Report', component: () => import('../pages/ReportPage.vue'), meta: { requiresAuth: true } },

@@ -30,6 +30,7 @@ const navItems = [
   { label: '首页', to: '/' },
   { label: '辅助筛查', to: '/screening' },
   { label: '情绪陪伴', to: '/companion' },
+  { label: '表情识别', to: '/emotion' },
   { label: '情绪日历', to: '/mood-calendar' },
   { label: '数据分析', to: '/analytics' },
   { label: '关于我们', to: '/about' },

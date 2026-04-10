@@ -15,6 +15,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/livetalking/, ''),
       },
+      '/fer': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/fer/, ''),
+      },
     },
   },
 })
