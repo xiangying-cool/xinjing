@@ -16,7 +16,7 @@ from app.schemas.chat import ChatMessageCreateRequest, ChatMessageOut, ChatSessi
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 RAG_SERVICE_URL = "http://localhost:8001/v1/rag/answer"
-RAG_TIMEOUT = 15.0  # seconds
+RAG_TIMEOUT = 45.0  # seconds — LLM generation can take 10-15s
 
 # 危机关键词兜底（RAG 服务不可用时的本地检测）
 _CRISIS_KEYWORDS = ["自杀", "轻生", "不想活", "结束生命", "去死", "活不下去", "想死"]

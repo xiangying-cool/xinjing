@@ -1,12 +1,28 @@
 <script setup>
-import { ref, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import XjLogo from '../components/XjLogo.vue'
 import { useAuth } from '../composables/useAuth.js'
+import { useWebRTC } from '../composables/useWebRTC.js'
 
 const route  = useRoute()
 const router = useRouter()
 const { isLoggedIn, currentUser, logout } = useAuth()
+const { state: rtcState, registerAudioElement, unlockAudio, connect, disconnect } = useWebRTC()
+
+// ── 持久化数字人音频元素 ──────────────────────────────
+const digitalHumanAudio = ref(null)
+onMounted(() => {
+  if (digitalHumanAudio.value) registerAudioElement(digitalHumanAudio.value)
+  // 已登录时立即发起连接
+  if (isLoggedIn.value) connect()
+})
+
+// 登录状态变化时连接/断开
+watch(isLoggedIn, (loggedIn) => {
+  if (loggedIn) connect()
+  else disconnect()
+})
 
 const scrolled   = ref(false)
 const menuOpen   = ref(false)
@@ -16,6 +32,7 @@ const userMenuOpen = ref(false)
 function handleLogout() {
   userMenuOpen.value = false
   logout()
+  disconnect()
   router.push('/')
 }
 
@@ -176,8 +193,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll))
     </Transition>
   </header>
 
+  <!-- 持久化数字人音频（不可见，全局播放） -->
+  <audio ref="digitalHumanAudio" autoplay style="display:none" @click="unlockAudio"></audio>
+
   <!-- Page content -->
-  <main class="pt-16 min-h-screen">
+  <main class="pt-16 min-h-screen" @click="unlockAudio">
     <RouterView />
   </main>
 

@@ -116,6 +116,64 @@ async def predict_video(request: Request, file: UploadFile = File(...), emoji: O
         log_info(client_ip, f"Video processing failed: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@router.post("/json-result")
+async def predict_image_json(
+    request: Request,
+    file: UploadFile = File(...)
+):
+    """返回 JSON 格式的情绪概率，供后端调用"""
+    cfg = request.app.state.cfg
+    model = request.app.state.model
+
+    try:
+        contents = await file.read()
+        npimg = np.frombuffer(contents, np.uint8)
+        image = cv2.imdecode(npimg, cv2.IMREAD_UNCHANGED)
+
+        if image is None:
+            return JSONResponse(status_code=400, content={"error": "Invalid image format"})
+
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        elif image.ndim == 3 and image.shape[2] == 4:
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
+
+        # YOLO 人脸检测
+        yolo_result = model.Yolo(image, verbose=False)[0]
+        face_images, _ = model.extract_faces_from_yolo(yolo_result, image)
+
+        if len(face_images) == 0:
+            # 未检测到人脸，返回以"中立"为主的分布
+            return {"emotions": [0.05, 0.05, 0.05, 0.1, 0.05, 0.05, 0.65], "face_detected": False}
+
+        # 确保维度正确（4D: batch, channel, H, W）
+        if face_images.ndim != 4:
+            return {"emotions": [0.05, 0.05, 0.05, 0.1, 0.05, 0.05, 0.65], "face_detected": False}
+
+        # 直接从 ONNX 模型取 softmax 概率（不丢弃非最大值）
+        from scipy.special import softmax as sp_softmax
+        onnx_inputs = {model.FerNet.model.get_inputs()[0].name: face_images}
+        raw = model.FerNet.model.run(None, onnx_inputs)[0]
+        probs = sp_softmax(raw, axis=1)[0].tolist()  # 取第一张人脸
+
+        # FER 类别顺序: {0:Surprise, 1:Fear, 2:Disgust, 3:Happy, 4:Sad, 5:Angry, 6:Neutral}
+        # 前端期望顺序: {0:愤怒, 1:厌恶, 2:恐惧, 3:开心, 4:悲伤, 5:惊讶, 6:中立}
+        emotions = [
+            probs[5],  # 0: 愤怒 Angry
+            probs[2],  # 1: 厌恶 Disgust
+            probs[1],  # 2: 恐惧 Fear
+            probs[3],  # 3: 开心 Happy
+            probs[4],  # 4: 悲伤 Sad
+            probs[0],  # 5: 惊讶 Surprise
+            probs[6],  # 6: 中立 Neutral
+        ]
+
+        return {"emotions": emotions, "face_detected": True}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     cfg = websocket.app.state.cfg
@@ -151,9 +209,52 @@ async def websocket_endpoint(websocket: WebSocket):
                     continue
 
                 model = websocket.app.state.model
-                processed = process_image_with_model(frame, model, cfg)
-                _, jpeg = cv2.imencode('.jpg', processed, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+
+                # Single YOLO pass — annotate frame AND extract probabilities
+                from scipy.special import softmax as sp_softmax
+
+                yolo_result = model.Yolo(frame, verbose=False)[0]
+                face_images, bbox = model.extract_faces_from_yolo(yolo_result, frame)
+
+                emotion_payload = {
+                    "type": "emotions",
+                    "face_detected": False,
+                    "emotions": [0.05, 0.05, 0.05, 0.1, 0.05, 0.05, 0.65],
+                }
+                detections = []
+
+                if len(face_images) > 0 and face_images.ndim == 4:
+                    onnx_inputs = {model.FerNet.model.get_inputs()[0].name: face_images}
+                    raw = model.FerNet.model.run(None, onnx_inputs)[0]
+                    all_probs = sp_softmax(raw, axis=1)  # shape: (n_faces, 7)
+                    class_ids = all_probs.argmax(axis=1)
+
+                    for i, (x1, y1, x2, y2, conf, class_label) in enumerate(bbox):
+                        if float(conf) < cfg.INFERENCE.CONFIDENCE_THRESHOLD or class_label != "face":
+                            continue
+                        cid = int(class_ids[i])
+                        detections.append({
+                            "bbox": [int(x1), int(y1), int(x2), int(y2)],
+                            "confidence": round(float(conf), 2),
+                            "class_id": cid,
+                            "class": "face",
+                            "emotion_label": model.classes[cid],
+                            "emoji": model.emotion_emojis[cid],
+                        })
+
+                    # FER order: {0:Surprise,1:Fear,2:Disgust,3:Happy,4:Sad,5:Angry,6:Neutral}
+                    # Frontend: {0:愤怒,1:厌恶,2:恐惧,3:开心,4:悲伤,5:惊讶,6:中立}
+                    probs = all_probs[0].tolist()
+                    emotion_payload = {
+                        "type": "emotions",
+                        "face_detected": True,
+                        "emotions": [probs[5], probs[2], probs[1], probs[3], probs[4], probs[0], probs[6]],
+                    }
+
+                annotated = model.plot({"detections": detections, "image": yolo_result.orig_img}, cfg, fps=0)
+                _, jpeg = cv2.imencode('.jpg', annotated, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
                 await websocket.send_bytes(jpeg.tobytes())
+                await websocket.send_text(json.dumps(emotion_payload))
 
                 if frame_id % 10 == 0:
                     log_info(client_ip, f"Sent frame {frame_id}")

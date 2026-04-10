@@ -1,104 +1,48 @@
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue'
+import { ref, nextTick, onMounted, watchEffect } from 'vue'
 import { useAuth } from '../composables/useAuth.js'
+import { useWebRTC } from '../composables/useWebRTC.js'
 import { api } from '../services/api.js'
 import { marked } from 'marked'
 
 // 配置 marked 选项
 marked.setOptions({
-  breaks: true,  // 支持换行
-  gfm: true,     // GitHub Flavored Markdown
+  breaks: true,
+  gfm: true,
 })
 
 const { userId } = useAuth()
+const { state: rtcState, unlockAudio, connect, speakReply, interruptSpeech } = useWebRTC()
+
+/** 将 markdown 文本转为适合 TTS 朗读的纯文本，并限制长度 */
+function toSpeechText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')          // **加粗** → 加粗
+    .replace(/\*(.*?)\*/g, '$1')               // *斜体* → 斜体
+    .replace(/`[^`]*`/g, '')                   // `code` → 去掉
+    .replace(/#{1,6}\s*/g, '')                 // ## 标题 → 去掉#
+    .replace(/\[[\d,\s]+\]/g, '')              // [1][2] 引用编号 → 去掉
+    .replace(/!\[.*?\]\(.*?\)/g, '')           // 图片 → 去掉
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // [链接文字](url) → 链接文字
+    .replace(/^[-*+]\s+/gm, '')               // 列表符号 → 去掉
+    .replace(/^\d+\.\s+/gm, '')               // 有序列表 → 去掉
+    .replace(/[⚠️💡📞🌙🧘✍️🎯🤖👤🫁👉🆘📚]/gu, '') // 可能干扰TTS的emoji
+    .replace(/\n+/g, '，')                    // 换行 → 停顿
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 80)                              // 最多80字，约15秒语音，减少 edge-TTS 缓冲时间
+}
 const chatSessionId = ref(null)
 
-// ─── WebRTC 数字人 ──────────────────────────────────────────
+// ─── 数字人视频区域 ─────────────────────────────────────────
 const videoRef = ref(null)
-const audioRef = ref(null)
-const pc = ref(null)
-const sessionId = ref(null)
-const rtcConnected = ref(false)
-const rtcConnecting = ref(false)
-const rtcFailed = ref(false)   // 数字人连接失败标志，用于显示提示
 
-async function startWebRTC() {
-  if (rtcConnecting.value || rtcConnected.value) return
-  rtcConnecting.value = true
-  try {
-    const peerConnection = new RTCPeerConnection({ sdpSemantics: 'unified-plan' })
-    pc.value = peerConnection
-
-    peerConnection.addEventListener('track', (evt) => {
-      if (!evt.streams[0]) return
-      if (evt.track.kind === 'video' && videoRef.value) {
-        videoRef.value.srcObject = evt.streams[0]
-      }
-      // 音频：统一挂到 audioRef
-      if (evt.track.kind === 'audio' && audioRef.value) {
-        audioRef.value.srcObject = evt.streams[0]
-        // 尝试自动播放音频
-        audioRef.value.play().catch(e => console.log('音频自动播放被阻止，等待用户交互'))
-      }
-    })
-
-    peerConnection.addTransceiver('video', { direction: 'recvonly' })
-    peerConnection.addTransceiver('audio', { direction: 'recvonly' })
-
-    const offer = await peerConnection.createOffer()
-    await peerConnection.setLocalDescription(offer)
-
-    await new Promise((resolve) => {
-      if (peerConnection.iceGatheringState === 'complete') { resolve(); return }
-      const check = () => {
-        if (peerConnection.iceGatheringState === 'complete') {
-          peerConnection.removeEventListener('icegatheringstatechange', check)
-          resolve()
-        }
-      }
-      peerConnection.addEventListener('icegatheringstatechange', check)
-    })
-
-    const localDesc = peerConnection.localDescription
-    const res = await fetch('/livetalking/offer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sdp: localDesc.sdp, type: localDesc.type }),
-    })
-    if (!res.ok) throw new Error('offer rejected')
-    const answer = await res.json()
-    sessionId.value = answer.sessionid
-    await peerConnection.setRemoteDescription(answer)
-    rtcConnected.value = true
-  } catch (e) {
-    console.error('数字人连接失败:', e)
-    alert('数字人连接失败: ' + e.message)
-    pc.value = null
-    sessionId.value = null
-    rtcFailed.value = true
-  } finally {
-    rtcConnecting.value = false
+// 当全局 remoteStream 就绪（或页面切回来时）绑定到本页面的 <video> 元素
+watchEffect(() => {
+  if (videoRef.value && rtcState.remoteStream) {
+    videoRef.value.srcObject = rtcState.remoteStream
   }
-}
-
-function stopWebRTC() {
-  if (pc.value) { pc.value.close(); pc.value = null }
-  rtcConnected.value = false
-  sessionId.value = null
-}
-
-async function speakReply(text) {
-  if (!rtcConnected.value || sessionId.value === null) return
-  try {
-    await fetch('/livetalking/human', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, type: 'echo', interrupt: false, sessionid: sessionId.value }),
-    })
-  } catch (e) {
-    console.warn('数字人发音失败:', e)
-  }
-}
+})
 
 // ─── 聊天 ──────────────────────────────────────────────────
 const messages = ref([
@@ -123,10 +67,8 @@ const botResponses = {
 async function sendMessage(text) {
   if (!text?.trim() || loading.value) return
   const t = text.trim()
-  // 用户点击发送 = 用户手势，此时解锁浏览器对音频自动播放的限制
-  if (audioRef.value && audioRef.value.srcObject) {
-    audioRef.value.play().catch(() => {})
-  }
+  unlockAudio() // 用户交互，解锁音频自动播放
+  interruptSpeech() // 立即清空旧语音队列，不等 LLM 回复就抢占
   messages.value.push({
     role: 'user', text: t,
     time: new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' }),
@@ -139,7 +81,6 @@ async function sendMessage(text) {
   if (chatSessionId.value) {
     try {
       const msgs = await api.post(`/chat/sessions/${chatSessionId.value}/messages`, { content: t, sender_type: 'user' })
-      // msgs 是完整消息列表，取最后一条 agent 回复
       const lastAgent = [...msgs].reverse().find(m => m.sender_type === 'agent')
       if (lastAgent) replyText = lastAgent.content
     } catch (e) {
@@ -148,11 +89,11 @@ async function sendMessage(text) {
   }
 
   if (!replyText) {
-    // 后端不可用时降级到本地关键词回复
     await new Promise(r => setTimeout(r, 800))
     replyText = botResponses[t] || '我听到了，谢谢你愿意分享。能多说一点吗？我想更了解你的感受。'
   }
 
+  speakReply(toSpeechText(replyText))  // 去掉 markdown，限制长度，再发给 TTS
   messages.value.push({
     role: 'assistant', text: replyText,
     time: new Date().toLocaleTimeString('zh', { hour: '2-digit', minute: '2-digit' }),
@@ -160,29 +101,25 @@ async function sendMessage(text) {
   loading.value = false
   await nextTick(); scrollToBottom()
   showTask.value = true
-  speakReply(replyText)
 }
 
 onMounted(async () => {
-  startWebRTC()
+  // 若全局连接尚未建立（例如直接进入该页面），发起连接
+  if (!rtcState.connected && !rtcState.connecting) connect()
+
   if (userId.value) {
     try {
       const session = await api.post('/chat/sessions', {
         user_id: userId.value,
         session_topic: '日常陪伴',
       })
-      if (session?.id) {
-        chatSessionId.value = session.id
-      }
+      if (session?.id) chatSessionId.value = session.id
     } catch (e) {
       console.error('创建聊天会话失败，使用本地模式:', e)
     }
   }
 })
-
-onUnmounted(() => {
-  stopWebRTC()
-})
+// onUnmounted 不再断开连接，保持长连接
 
 function scrollToBottom() {
   if (chatRef.value) chatRef.value.scrollTop = chatRef.value.scrollHeight
@@ -274,12 +211,10 @@ function stopIntervention() {
 
         <!-- ─ 左侧：数字人全貌 ──────────────────────────── -->
         <div class="bg-white rounded-3xl shadow-card flex flex-col overflow-hidden" style="height: 720px">
-          <audio ref="audioRef" autoplay></audio>
-
           <!-- 视频区：撑满剩余高度，展示全身 -->
           <div class="relative flex-1 overflow-hidden" style="background: linear-gradient(to bottom, #f0fdf4, #e8f5e9)">
             <video
-              v-show="rtcConnected"
+              v-show="rtcState.connected"
               ref="videoRef"
               autoplay
               playsinline
@@ -287,28 +222,28 @@ function stopIntervention() {
             ></video>
 
             <!-- 未连接占位 -->
-            <div v-if="!rtcConnected" class="absolute inset-0 flex flex-col items-center justify-center gap-4">
+            <div v-if="!rtcState.connected" class="absolute inset-0 flex flex-col items-center justify-center gap-4">
               <div class="relative">
                 <div class="absolute inset-0 rounded-full blur-3xl opacity-40 bg-pink-200"></div>
                 <div class="relative w-28 h-28 rounded-full bg-gradient-to-br from-primary to-teal-brand flex items-center justify-center shadow-xl border-4 border-white">
                   <span class="text-5xl">🤖</span>
                 </div>
               </div>
-              <div v-if="rtcConnecting" class="text-xs text-gray-500 flex items-center gap-2">
+              <div v-if="rtcState.connecting" class="text-xs text-gray-500 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-primary animate-pulse inline-block"></span>
                 正在连接数字人...
               </div>
-              <template v-else-if="rtcFailed">
+              <template v-else-if="rtcState.failed">
                 <p class="text-xs text-amber-600 text-center px-4">数字人服务暂不可用，已切换为文字陪伴模式</p>
                 <button
                   class="text-xs bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full hover:bg-amber-200 transition-colors"
-                  @click="() => { rtcFailed = false; startWebRTC() }">
+                  @click="connect">
                   重新连接
                 </button>
               </template>
               <button v-else
                 class="text-xs bg-primary/10 text-primary px-4 py-1.5 rounded-full hover:bg-primary hover:text-white transition-colors"
-                @click="() => { if (audioRef) audioRef.play?.().catch(()=>{}); startWebRTC() }">
+                @click="connect">
                 点击连接数字人
               </button>
             </div>
@@ -318,11 +253,11 @@ function stopIntervention() {
           <div class="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between bg-white">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full flex-shrink-0"
-                :class="rtcConnected ? 'bg-green-400 animate-pulse' : 'bg-gray-300'"></span>
+                :class="rtcState.connected ? 'bg-green-400 animate-pulse' : 'bg-gray-300'"></span>
               <span class="text-xs font-bold text-gray-700">心镜数字陪伴</span>
             </div>
-            <span class="text-xs" :class="rtcConnected ? 'text-green-500' : rtcFailed ? 'text-amber-500' : 'text-gray-400'">
-              {{ rtcConnected ? '在线 · AI 陪伴' : (rtcConnecting ? '连接中...' : rtcFailed ? '文字模式' : '未连接') }}
+            <span class="text-xs" :class="rtcState.connected ? 'text-green-500' : rtcState.failed ? 'text-amber-500' : 'text-gray-400'">
+              {{ rtcState.connected ? '在线 · AI 陪伴' : (rtcState.connecting ? '连接中...' : rtcState.failed ? '文字模式' : '未连接') }}
             </span>
           </div>
         </div>

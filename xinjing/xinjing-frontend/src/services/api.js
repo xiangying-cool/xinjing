@@ -10,14 +10,16 @@ function getToken() {
 
 async function request(method, path, body) {
   const token = getToken()
-  const headers = { 'Content-Type': 'application/json' }
+  const isFormData = body instanceof FormData
+  const headers = {}
+  if (!isFormData) headers['Content-Type'] = 'application/json'  // FormData 让浏览器自动带 boundary
   if (token) headers['Authorization'] = `Bearer ${token}`
 
   try {
     const res = await fetch(`${BASE}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
     })
 
     if (!res.ok) {

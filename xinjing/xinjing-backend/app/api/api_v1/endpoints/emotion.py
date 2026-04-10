@@ -31,7 +31,7 @@ async def detect_emotion(file: UploadFile = File(...)):
         async with httpx.AsyncClient() as client:
             files = {"file": (file.filename, BytesIO(contents), file.content_type)}
             response = await client.post(
-                f"{FER_SERVICE_URL}/predict/image",
+                f"{FER_SERVICE_URL}/predict/json-result",
                 files=files,
                 timeout=30.0
             )
@@ -71,7 +71,7 @@ async def detect_emotion_base64(image_data: dict):
         async with httpx.AsyncClient() as client:
             files = {"file": ("image.jpg", BytesIO(image_bytes), "image/jpeg")}
             response = await client.post(
-                f"{FER_SERVICE_URL}/predict/image",
+                f"{FER_SERVICE_URL}/predict/json-result",
                 files=files,
                 timeout=30.0
             )
